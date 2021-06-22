@@ -3,7 +3,7 @@
 ## Requirements
 
 * Carla 0.9.11
-* Unreal Engine numero
+* Unreal Engine 4.24
 * OpenPilot
 
 ## How to import the billboard into Carla
