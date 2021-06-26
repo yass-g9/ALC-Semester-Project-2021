@@ -15,12 +15,6 @@ from scipy.misc import imsave
 from driving_models import *
 from utils import *
 
-
-def _compute_gradients(tensor, var_list):
-    grads = tf.gradients(tensor, var_list)
-    return [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(var_list, grads)]
-
-
 # read the parameter
 # argument parsing
 parser = argparse.ArgumentParser(
@@ -33,7 +27,7 @@ parser.add_argument('-sd', '--seeds', help="number of seeds of input", default=1
 parser.add_argument('-grad', '--grad_iterations', help="number of iterations of gradient descent", default=25, type=int)
 parser.add_argument('-th', '--threshold', help="threshold for determining neuron activated", default=0, type=float)
 parser.add_argument('-t', '--target_model', help="target model that we want it predicts differently",
-                    choices=[0, 1, 2], default=1, type=int)
+                    choices=[0, 1, 2], default=0, type=int)
 parser.add_argument('-sp', '--start_point', help="occlusion upper left corner coordinate", default=(50, 50), type=tuple)
 parser.add_argument('-occl_size', '--occlusion_size', help="occlusion size", default=(50, 50), type=tuple)
 parser.add_argument('-overlap_stra','--overlap_stratage',help='max:select maximum gradient value. sum:..., highest: detect the influence', choices=['max','sum','highest_influence'],default = 'sum')
@@ -61,22 +55,11 @@ input_shape = (img_rows, img_cols, 3)
 # define input tensor as a placeholder
 input_tensor = Input(shape=input_shape)
 
-#28,16
-
-# load multiple models sharing same input tensor
 K.set_learning_phase(0)
-#model1 = Dave_orig(input_tensor=input_tensor, load_weights=True)
-model1 = Dave_v2(input_tensor=input_tensor, load_weights=True)
-#model2 = Dave_norminit(input_tensor=input_tensor, load_weights=True)
-#model3 = Dave_dropout(input_tensor=input_tensor, load_weights=True)
-# init coverage table
-#model_layer_dict1, model_layer_dict2, model_layer_dict3 = init_coverage_tables(model1, model2, model3)
+model1 = Dave_orig(input_tensor=input_tensor, load_weights=True)
 model_layer_dict1 = init_coverage_tables2(model1)
 
-# ==============================================================================================
-# start gen inputs
-#img_paths = image.list_pictures('./testing/center', ext='jpg')
-#((0,0) is on the left-top side, = ( y, x) = (height,width))
+
 
 #IO process for the final physical test
 start_points = []
@@ -87,7 +70,6 @@ count=0
 filelist = glob.glob(os.path.join(args.path,'*.'+args.type))
 print("--------IMG READ-------")
 for f in sorted(filelist):
-    #TODO:!COUNT USED
     count+=1
     if(count==329 or count%5!=0):
         continue
@@ -126,7 +108,6 @@ layer_name1, index1 = neuron_to_cover(model_layer_dict1)
 
 # construct joint loss function
 if args.target_model == 0:
-    #loss1 = -args.weight_diff * K.mean(model1.get_layer('before_prediction').output[..., 0])
     loss1 = args.weight_diff * K.mean(model1.get_layer('prediction').output)
 elif args.target_model == 1:
     loss1 = K.mean(model1.get_layer('before_prediction').output[..., 0])
@@ -145,9 +126,7 @@ else:
     print("LOSS EROOR!")
     exit()
 # we compute the gradient of the input picture wrt this loss
-grads = normalize(_compute_gradients(final_loss, input_tensor)[0])
-#grads = normalize(K.gradients(final_loss, input_tensor)[0])
-#grads = normalize(K.gradients(loss1, input_tensor)[0])
+grads = normalize(K.gradients(final_loss, input_tensor)[0])
 
 # this function returns the loss and grads given the input picture
 iterate = K.function([input_tensor], [loss1, loss1_neuron, grads])
@@ -190,7 +169,7 @@ for iters in range(args.grad_iterations):
             if args.transformation == 'light':
                 grads_value = constraint_light(grads_value)  # constraint the gradients value
             elif args.transformation == 'occl':
-                #print(np.shape(grads_value),start_points[indexs[i+count]],occl_sizes[indexs[i+count]])
+                
                 grads_value = constraint_occl(grads_value, start_points[indexs[i+count]],
                                                 occl_sizes[indexs[i+count]])  # constraint the gradients value
             elif args.transformation == 'blackout':
@@ -203,7 +182,6 @@ for iters in range(args.grad_iterations):
             #  we will count the image(add the image's gradient into the logo_data)
             # if angle_diverged3(angle3[indexs[i+count]],model1.predict(tmp_img)[0]):
             logo_data = transform_occl3(grads_value,start_points[indexs[i+count]],occl_sizes[indexs[i+count]],logo_data,count)
-            #print(i,count,np.array_equal(np.sum(logo_data,axis = 0),np.zeros_like(np.sum(logo_data,axis = 0))))
             if(args.greedy_stratage=='random_fix' or args.greedy_stratage=='sequence_fix'): #random_fix and sequence fix is almost same except that the indexes are shuffled or not
                 logo_data[count] = cv2.multiply(logo_data[count],1-fixed_pixels) #grads_value will only be adopted if the pixel is not fixed
                 grads_value = np.array(logo_data[count],dtype=np.bool)
@@ -219,16 +197,12 @@ for iters in range(args.grad_iterations):
             dim_idx.append(index)
             dim_idx += list(np.ix_(*[np.arange(i) for i in shp[1:]]))
             logo_data= logo_data[dim_idx]
-        #TODO1: ADAM May be adapted.
-        #TODO2: Smooth box constait    
-        #TODO3: Consider the angle increase or decrease direction (the gradient should be positive or negative)
 
         tmp_logo = logo_data * args.step + logo
         tmp_logo = control_bound(tmp_logo)
         tmp_imgs = update_image(tmp_imgs,tmp_logo,start_points,occl_sizes) 
         # If this minibatch generates a higher total difference we will consider this one.
         this_diff = total_diff(tmp_imgs,model1,angle3)
-        #print("iteration ",iters,". batch count ",i,". this time diff ",this_diff,". last time diff ", last_diff)
         if( this_diff> last_diff):
             logo += logo_data * args.step
             logo = control_bound(logo)
@@ -238,8 +212,6 @@ for iters in range(args.grad_iterations):
         else:
         #simulated_annealing is applied in current version. DATE: 26/07
             if(args.simulated_annealing):
-                #if(this_diff != last_diff):
-                    #print(i,"probability = ",pow(math.e,args.sa_k * (this_diff-last_diff)/(pow(args.sa_b,iters))),". this diff ",this_diff,". last diff ", last_diff)
                 if(random.random() < pow(math.e,args.sa_k * (this_diff-last_diff)/(pow(args.sa_b,iters))) and this_diff != last_diff):
                     logo += logo_data * args.step
                     logo = control_bound(logo)
@@ -251,9 +223,6 @@ for iters in range(args.grad_iterations):
     for i in range(len(imgs)): 
         angle1 = model1.predict(imgs[i])[0]
         gray_angle_diff += abs(angle1 - angle3[i])
-        #if(i==30):
-            #gen_img_deprocessed = draw_arrow3(deprocess_image(imgs[i]),angle3[i],angle1)
-            #imsave('./generated_inputs/' +str(iters) + '_iter.png', gen_img_deprocessed)
     if(iters %5 == 0):
         print("iteration ",iters, ". diff between raw and adversarial", gray_angle_diff/len(imgs)*(180/math.pi),". change time is,",change_times,". bad_change_times,",bad_change_times)
     if(iters % 10 == 0):
@@ -267,6 +236,5 @@ for i in range(len(imgs)):
     angle1 = model1.predict(imgs[i])[0]
     output.write(str(i)+" " + str(float(angle3[i]))+" "+str(float(angle1)) + "\n")
     gen_img_deprocessed = draw_arrow3(deprocess_image(imgs[i]),min(max(angle3[i],-math.pi/2),math.pi/2),angle1)
-    #gen_img_deprocessed = deprocess_image(imgs[i])
     imsave('./train_output/'+str(i) + 'th_img.png', gen_img_deprocessed)   
 output.close()

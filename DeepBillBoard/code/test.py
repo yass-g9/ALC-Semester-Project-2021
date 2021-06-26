@@ -52,8 +52,6 @@ input_shape = (img_rows, img_cols, 3)
 # define input tensor as a placeholder
 input_tensor = Input(shape=input_shape)
 
-#28,16
-
 # load multiple models sharing same input tensor
 K.set_learning_phase(0)
 model1 = Dave_orig(input_tensor=input_tensor, load_weights=True)
@@ -61,10 +59,8 @@ model_layer_dict1 = init_coverage_tables2(model1)
 
 # ==============================================================================================
 # start gen inputs
-#img_paths = image.list_pictures('./testing/center', ext='jpg')
-#((0,0) is on the left-top side, = ( y, x) = (height,width))
 acc = 0
-filelist = glob.glob(os.path.join(args.path, '*.png'))#3.2828627
+filelist = glob.glob(os.path.join(args.path, '*.png'))
 
 
 angle3 = []
@@ -101,10 +97,6 @@ for i in range(len(imgs)):
 print("---CALCULATE THE DIRECTION COMPLETE---")
 print("---IMG WRITE---")
 for i in range(len(raw_imgs)): 
-    #if(i<100):
-    #   continue 
-    #output.write(str(i)+" " + str(float(angle3[i]))+ "\n")
-    #gen_img_deprocessed = draw_arrow2(deprocess_image(imgs[i]),angle3[i])
     gen_img_deprocessed = draw_arrow2(deprocess_image(raw_imgs[i],(1080,1920,3)),angle3[i],10)
     imsave('./test_output/'+str("%03d" % i) + '.png', gen_img_deprocessed) 
 print("---IMG WRITE COMPLETE---")
