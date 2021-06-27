@@ -10,7 +10,7 @@ bash simulation.sh
 
 ## Save the created images as a video
 
-The images created during the simulation can be transforned into a video running the following command.
+The images created during the simulation can be transformed into a video running the following command.
 
 ```
 ffmpeg -i ./output/img_%03d.png simulation.mp4
