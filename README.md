@@ -1,5 +1,15 @@
 # ALC-Semester-Project-2021
 
+## Presentation
+
+#### Context
+
+Nowadays, autonomous vehicles become reality using deep learning methods, however such technology is subject to huge security challenges. Indeed, ALC (Automated Lane Centering) systems are more and more reliable, but what if the system fails and misleads the vehicle once. Hence the goal in our project was to look how ALC systems could be fooled in order to make the vehicle do an accident. This repository provides the code we used with Carla, OpenPilot, and DeepBillboard in order to achieve our semester project.
+
+#### Source
+
+We adapted [DeepBillboard](https://github.com/deepbillboard/DeepBillboard) to make our experiments, please take a look at their GitHub. 
+
 ## How to install Unreal Engine 4.24 on Linux
 
 #### Register into Epic Games
