@@ -25,7 +25,7 @@ Then, go into the cloned folder and build it by launching the following command 
 ./Setup.sh && ./GenerateProjectFiles.sh && make
 ```
 
-## Run Carla 0.9.11 with Unreal Engine 0.4.24
+## Run Carla 0.9.11 with Unreal Engine 4.24
 
 #### Get assets
 

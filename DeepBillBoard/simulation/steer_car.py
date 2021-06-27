@@ -28,7 +28,8 @@ actors_list = world.get_actors()
 We delete the previous output frames and make another new directory
 '''
 directory_name = "output/"
-shutil.rmtree('./output')
+if os.path.exists("output"):
+	shutil.rmtree('./output')
 os.mkdir('./output')
 
 
